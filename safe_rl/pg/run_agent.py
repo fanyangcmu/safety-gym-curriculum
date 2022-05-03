@@ -35,7 +35,8 @@ def run_polopt_agent(env_fn,
                      # Policy learning:
                      ent_reg=0.,
                      # Cost constraints / penalties:
-                     cost_lim=25,
+                     init_cost_lim=25,
+                     target_cost_lim=25,
                      penalty_init=1.,
                      penalty_lr=5e-2,
                      # KL divergence:
@@ -46,14 +47,14 @@ def run_polopt_agent(env_fn,
                      # Logging:
                      logger=None, 
                      logger_kwargs=dict(), 
-                     save_freq=1
+                     save_freq=1,
+                     curriculum=False,
+                     stable_length=10,
+                     decrease_ratio=0.5,
                      ):
-
-
     #=========================================================================#
     #  Prepare logger, seed, and environment in this process                  #
     #=========================================================================#
-
     logger = EpochLogger(**logger_kwargs) if logger is None else logger
     logger.save_config(locals())
 
@@ -65,6 +66,7 @@ def run_polopt_agent(env_fn,
 
     agent.set_logger(logger)
 
+    current_cost_lim = init_cost_lim
     #=========================================================================#
     #  Create computation graph for actor and critic (not training routine)   #
     #=========================================================================#
@@ -81,6 +83,7 @@ def run_polopt_agent(env_fn,
     # Inputs to computation graph for special purposes
     surr_cost_rescale_ph = tf.placeholder(tf.float32, shape=())
     cur_cost_ph = tf.placeholder(tf.float32, shape=())
+    cost_lim_ph = tf.placeholder(tf.float32, shape=())
 
     # Outputs from actor critic
     ac_outs = actor_critic(x_ph, a_ph, **ac_kwargs)
@@ -144,12 +147,11 @@ def run_polopt_agent(env_fn,
                                           dtype=tf.float32)
         # penalty = tf.exp(penalty_param)
         penalty = tf.nn.softplus(penalty_param)
-
     if agent.learn_penalty:
         if agent.penalty_param_loss:
-            penalty_loss = -penalty_param * (cur_cost_ph - cost_lim)
+            penalty_loss = -penalty_param * (cur_cost_ph - cost_lim_ph)
         else:
-            penalty_loss = -penalty * (cur_cost_ph - cost_lim)
+            penalty_loss = -penalty * (cur_cost_ph - cost_lim_ph)
         train_penalty = MpiAdamOptimizer(learning_rate=penalty_lr).minimize(penalty_loss)
 
 
@@ -224,7 +226,7 @@ def run_polopt_agent(env_fn,
                                  surr_cost=surr_cost,
                                  d_kl=d_kl, 
                                  target_kl=target_kl,
-                                 cost_lim=cost_lim))
+                                 cost_lim=cost_lim_ph))
     agent.prepare_update(training_package)
 
     #=========================================================================#
@@ -267,22 +269,27 @@ def run_polopt_agent(env_fn,
 
 
     #=========================================================================#
+    # Set up the curriculum parameters                                        #
+    #=========================================================================#
+    cost_record_list = [99999999] * stable_length
+
+    #=========================================================================#
     #  Create function for running update (called at end of each epoch)       #
     #=========================================================================#
 
     def update():
         cur_cost = logger.get_stats('EpCost')[0]
-        c = cur_cost - cost_lim
+        c = cur_cost - current_cost_lim
         if c > 0 and agent.cares_about_cost:
             logger.log('Warning! Safety constraint is already violated.', 'red')
 
         #=====================================================================#
         #  Prepare feed dict                                                  #
         #=====================================================================#
-
         inputs = {k:v for k,v in zip(buf_phs, buf.get())}
         inputs[surr_cost_rescale_ph] = logger.get_stats('EpLen')[0]
         inputs[cur_cost_ph] = cur_cost
+        # inputs[cost_lim_ph] = current_cost_lim
 
         #=====================================================================#
         #  Make some measurements before updating                             #
@@ -296,15 +303,15 @@ def run_polopt_agent(env_fn,
             measures['LossVC'] = vc_loss
         if agent.use_penalty:
             measures['Penalty'] = penalty
-
         pre_update_measures = sess.run(measures, feed_dict=inputs)
         logger.store(**pre_update_measures)
+        logger.store(cost_lim=current_cost_lim)
 
         #=====================================================================#
         #  Update penalty if learning penalty                                 #
         #=====================================================================#
         if agent.learn_penalty:
-            sess.run(train_penalty, feed_dict={cur_cost_ph: cur_cost})
+            sess.run(train_penalty, feed_dict={cur_cost_ph: cur_cost, cost_lim_ph: current_cost_lim})
 
         #=====================================================================#
         #  Update policy                                                      #
@@ -418,6 +425,26 @@ def run_polopt_agent(env_fn,
         #=====================================================================#
         #  Run RL update                                                      #
         #=====================================================================#
+        if curriculum:
+            cur_cost = logger.get_stats('EpCost')[0]
+            cost_record_list.pop(0)
+            cost_record_list.append(cur_cost)
+            assert len(cost_record_list) == stable_length
+            if np.array(cost_record_list).max() < current_cost_lim:
+                current_cost_lim = (current_cost_lim - target_cost_lim) * decrease_ratio + target_cost_lim
+                # cost_lim *= decrease_ratio
+                cost_record_list = [999999] * stable_length
+                # reset the penalty optimzier 
+                # with tf.variable_scope('penalty'):
+                #     # param_init = np.log(penalty_init)
+                #     param_init = np.log(max(np.exp(penalty_init)-1, 1e-8))
+                #     penalty_param = tf.get_variable('penalty_param',
+                #                                 initializer=float(param_init),
+                #                                 trainable=agent.learn_penalty,
+                #                                 dtype=tf.float32)
+                # penalty = tf.nn.softplus(penalty_param)
+                print("reduce the cost_lim")
+
         update()
 
         #=====================================================================#
@@ -435,6 +462,7 @@ def run_polopt_agent(env_fn,
         # Performance stats
         logger.log_tabular('EpRet', with_min_and_max=True)
         logger.log_tabular('EpCost', with_min_and_max=True)
+        logger.log_tabular('cost_lim')
         logger.log_tabular('EpLen', average_only=True)
         logger.log_tabular('CumulativeCost', cumulative_cost)
         logger.log_tabular('CostRate', cost_rate)

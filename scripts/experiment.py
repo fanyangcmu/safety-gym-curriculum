@@ -6,7 +6,7 @@ from safe_rl.utils.run_utils import setup_logger_kwargs
 from safe_rl.utils.mpi_tools import mpi_fork
 
 
-def main(robot, task, algo, seed, exp_name, cpu):
+def main(robot, task, algo, seed, exp_name, cpu, init_cost_lim, target_cost_lim, curriculum, decrease_ratio, stable_length):
 
     # Verify experiment
     robot_list = ['point', 'car', 'doggo']
@@ -31,7 +31,7 @@ def main(robot, task, algo, seed, exp_name, cpu):
     epochs = int(num_steps / steps_per_epoch)
     save_freq = 50
     target_kl = 0.01
-    cost_lim = 25
+    # cost_lim = 25
 
     # Fork for parallelizing
     mpi_fork(cpu)
@@ -43,7 +43,6 @@ def main(robot, task, algo, seed, exp_name, cpu):
     # Algo and Env
     algo = eval('safe_rl.'+algo)
     env_name = 'Safexp-'+robot+task+'-v0'
-
     algo(env_fn=lambda: gym.make(env_name),
          ac_kwargs=dict(
              hidden_sizes=(256, 256),
@@ -52,9 +51,13 @@ def main(robot, task, algo, seed, exp_name, cpu):
          steps_per_epoch=steps_per_epoch,
          save_freq=save_freq,
          target_kl=target_kl,
-         cost_lim=cost_lim,
+         init_cost_lim=init_cost_lim,
+         target_cost_lim=target_cost_lim,
          seed=seed,
-         logger_kwargs=logger_kwargs
+         logger_kwargs=logger_kwargs,
+         curriculum=curriculum,
+         decrease_ratio=decrease_ratio,
+         stable_length=stable_length
          )
 
 
@@ -68,6 +71,11 @@ if __name__ == '__main__':
     parser.add_argument('--seed', type=int, default=0)
     parser.add_argument('--exp_name', type=str, default='')
     parser.add_argument('--cpu', type=int, default=1)
+    parser.add_argument('--curriculum', action='store_true', default=False)
+    parser.add_argument('--init_cost_lim', type=float, default=25)
+    parser.add_argument('--target_cost_lim', type=float, default=25)
+    parser.add_argument('--decrease_ratio', type=float, default=0.5)
+    parser.add_argument('--stable_length', type=int, default=1)
     args = parser.parse_args()
     exp_name = args.exp_name if not(args.exp_name=='') else None
-    main(args.robot, args.task, args.algo, args.seed, exp_name, args.cpu)
+    main(args.robot, args.task, args.algo, args.seed, exp_name, args.cpu, init_cost_lim=args.init_cost_lim, target_cost_lim=args.target_cost_lim, curriculum=args.curriculum, decrease_ratio=args.decrease_ratio, stable_length=args.stable_length)
