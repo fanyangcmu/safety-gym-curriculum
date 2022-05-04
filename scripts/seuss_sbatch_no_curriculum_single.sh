@@ -2,8 +2,8 @@
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
 #SBATCH --time=600:00:00
-#SBATCH -o /home/fanyang3/github/lipschitz_sampling/log/log_0086.out
-#SBATCH -e /home/fanyang3/github/lipschitz_sampling/log/error_0086.out
+#SBATCH -o /home/fanyang3/github/safety-gym-curriculum/log/log_0086.out
+#SBATCH -e /home/fanyang3/github/safety-gym-curriculum/log/error_0086.out
 #SBATCH --partition=GPU 
 #SBATCH --exclude=compute-0-[7,9,11,13,19]
 #SBATCH --mem=4G
