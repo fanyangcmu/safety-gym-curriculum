@@ -21,7 +21,7 @@ def main(robot, task, algo, seed, exp_name, cpu, init_cost_lim, target_cost_lim,
     assert robot.lower() in robot_list, "Invalid robot"
 
     # Hyperparameters
-    exp_name = algo + '_' + robot + task
+    # exp_name = algo + '_' + robot + task
     if robot=='Doggo':
         num_steps = 1e8
         steps_per_epoch = 60000
