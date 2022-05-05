@@ -297,8 +297,6 @@ def run_polopt_agent(env_fn,
         inputs[surr_cost_rescale_ph] = logger.get_stats('EpLen')[0]
         inputs[cur_cost_ph] = cur_cost
         inputs[cost_lim_ph] = current_cost_lim
-        import pdb
-        pdb.set_trace()
 
         #=====================================================================#
         #  Make some measurements before updating                             #
