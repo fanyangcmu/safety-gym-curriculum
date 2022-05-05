@@ -51,6 +51,7 @@ def run_polopt_agent(env_fn,
                      curriculum=False,
                      stable_length=10,
                      decrease_ratio=0.5,
+                     clip_penalty=False,
                      ):
     #=========================================================================#
     #  Prepare logger, seed, and environment in this process                  #
@@ -173,7 +174,13 @@ def run_polopt_agent(env_fn,
         surr_adv = tf.reduce_mean(ratio * adv_ph)
 
     # Surrogate cost
-    surr_cost = tf.reduce_mean(ratio * cadv_ph)
+    if clip_penalty:
+        # part1 = tf.Print(tf.cast((cret_ph > cost_lim_ph),tf.float32),[tf.cast((cret_ph > cost_lim_ph),tf.float32)],message="This is what you want")
+        # part2 = tf.Print((ratio * cadv_ph),[(ratio * cadv_ph)],message="This is what you want")
+        # surr_cost = tf.reduce_mean(part1 * part2)
+        surr_cost = tf.reduce_mean(tf.cast((cret_ph > cost_lim_ph),tf.float32) * ratio * cadv_ph)
+    else:
+        surr_cost = tf.reduce_mean(ratio * cadv_ph)
 
     # Create policy objective function, including entropy regularization
     pi_objective = surr_adv + ent_reg * ent
@@ -289,7 +296,9 @@ def run_polopt_agent(env_fn,
         inputs = {k:v for k,v in zip(buf_phs, buf.get())}
         inputs[surr_cost_rescale_ph] = logger.get_stats('EpLen')[0]
         inputs[cur_cost_ph] = cur_cost
-        # inputs[cost_lim_ph] = current_cost_lim
+        inputs[cost_lim_ph] = current_cost_lim
+        import pdb
+        pdb.set_trace()
 
         #=====================================================================#
         #  Make some measurements before updating                             #
