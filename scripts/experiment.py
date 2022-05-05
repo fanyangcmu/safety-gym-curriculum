@@ -6,7 +6,7 @@ from safe_rl.utils.run_utils import setup_logger_kwargs
 from safe_rl.utils.mpi_tools import mpi_fork
 
 
-def main(robot, task, algo, seed, exp_name, cpu, init_cost_lim, target_cost_lim, curriculum, decrease_ratio, stable_length):
+def main(robot, task, algo, seed, exp_name, cpu, init_cost_lim, target_cost_lim, curriculum, decrease_ratio, stable_length, penalty_lr):
 
     # Verify experiment
     robot_list = ['point', 'car', 'doggo']
@@ -57,7 +57,8 @@ def main(robot, task, algo, seed, exp_name, cpu, init_cost_lim, target_cost_lim,
          logger_kwargs=logger_kwargs,
          curriculum=curriculum,
          decrease_ratio=decrease_ratio,
-         stable_length=stable_length
+         stable_length=stable_length,
+         penalty_lr=penalty_lr
          )
 
 
@@ -76,6 +77,9 @@ if __name__ == '__main__':
     parser.add_argument('--target_cost_lim', type=float, default=25)
     parser.add_argument('--decrease_ratio', type=float, default=0.5)
     parser.add_argument('--stable_length', type=int, default=1)
+    parser.add_argument('--penalty_lr', type=float, default=0.05)
     args = parser.parse_args()
     exp_name = args.exp_name if not(args.exp_name=='') else None
-    main(args.robot, args.task, args.algo, args.seed, exp_name, args.cpu, init_cost_lim=args.init_cost_lim, target_cost_lim=args.target_cost_lim, curriculum=args.curriculum, decrease_ratio=args.decrease_ratio, stable_length=args.stable_length)
+    main(args.robot, args.task, args.algo, args.seed, exp_name, args.cpu, init_cost_lim=args.init_cost_lim, 
+    target_cost_lim=args.target_cost_lim, curriculum=args.curriculum, decrease_ratio=args.decrease_ratio, 
+    stable_length=args.stable_length, penalty_lr=args.penalty_lr)

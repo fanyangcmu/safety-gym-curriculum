@@ -430,7 +430,7 @@ def run_polopt_agent(env_fn,
             cost_record_list.pop(0)
             cost_record_list.append(cur_cost)
             assert len(cost_record_list) == stable_length
-            if np.array(cost_record_list).max() < current_cost_lim:
+            if np.array(cost_record_list).mean() < current_cost_lim:
                 current_cost_lim = (current_cost_lim - target_cost_lim) * decrease_ratio + target_cost_lim
                 # cost_lim *= decrease_ratio
                 cost_record_list = [999999] * stable_length

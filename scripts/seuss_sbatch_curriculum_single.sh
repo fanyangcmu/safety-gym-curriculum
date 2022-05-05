@@ -2,13 +2,13 @@
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
 #SBATCH --time=600:00:00
-#SBATCH -o /home/fanyang3/github/safety-gym-curriculum/log/log_0085.out
-#SBATCH -e /home/fanyang3/github/safety-gym-curriculum/log/error_0085.out
+#SBATCH -o /home/fanyang3/github/safety-gym-curriculum/log/log_0093.out
+#SBATCH -e /home/fanyang3/github/safety-gym-curriculum/log/error_0093.out
 #SBATCH --partition=GPU 
 #SBATCH --exclude=compute-0-[7,9,11,13,19]
 #SBATCH --mem=4G
 #SBATCH --cpus-per-task=1
-#SBATCH --job-name='0085_safety_gym'
+#SBATCH --job-name='0093_safety_gym'
 # module load cuda-91 
 module load singularity
 

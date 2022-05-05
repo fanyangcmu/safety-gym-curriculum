@@ -5,7 +5,9 @@ do
     # normal experiment setup
     # sbatch seuss_sbatch_curriculum_single.sh ${i} Circle-v0 safeRL/circlev0/0058_curr_single_lr1e-1_decrease0.5_init_0_stable_10_warm_up_no_curr
     # safety gym
-    sbatch seuss_sbatch_curriculum_single.sh ${i} 0085_curr_lr5e-2_decrease0.5_init_512_stable_10_target_d_25
+    sbatch seuss_sbatch_curriculum_single.sh ${i} 0093_curr_lr5e-2_decrease0.5_init_512_stable_10_target_d_25 0.05
+    sbatch seuss_sbatch_curriculum_single.sh ${i} 0093_curr_lr1e-2_decrease0.5_init_512_stable_10_target_d_25 0.01
+    sbatch seuss_sbatch_curriculum_single.sh ${i} 0093_curr_lr1e-1_decrease0.5_init_512_stable_10_target_d_25 0.1
         # No curriculum
     # sbatch seuss_sbatch_no_curriculum_single.sh ${i} 0086_no_curr_steps_30k
     #Trajectory following

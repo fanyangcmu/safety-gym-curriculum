@@ -26,7 +26,8 @@ singularity exec  \
   'source ~/.bashrc &&  export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/fanyang3/.mujoco/mujoco200/bin && conda activate safety_gym  && \
  	python experiment.py \
   --seed='${1}' --exp_name='${2}' \
-  --cpu=1 --robot=point --task=goal1 --algo=ppo_lagrangian --init_cost_lim=25 --target_cost_lim=25' &
+  --cpu=1 --robot=point --task=goal1 --algo=ppo_lagrangian --init_cost_lim=25 --target_cost_lim=25\
+  --penalty_lr='${3}'' &
 
 # PYTHONPATH=$PYTHONPATH:/home/fanyang3/github/lipschitz_sampling python model_free/ppo_transfer_curriculum_single.py \ 
 #    --seed=6 --env=Safexp-PointGoal1-v0 --steps=30000 --exp_name=9999test \
