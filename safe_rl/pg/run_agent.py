@@ -150,9 +150,15 @@ def run_polopt_agent(env_fn,
         penalty = tf.nn.softplus(penalty_param)
     if agent.learn_penalty:
         if agent.penalty_param_loss:
-            penalty_loss = -penalty_param * (cur_cost_ph - cost_lim_ph)
+            if clip_penalty:
+                penalty_loss = -penalty_param * tf.cast((cur_cost_ph > cost_lim_ph),tf.float32) * (cur_cost_ph - cost_lim_ph)
+            else:
+                penalty_loss = -penalty_param * (cur_cost_ph - cost_lim_ph)
         else:
-            penalty_loss = -penalty * (cur_cost_ph - cost_lim_ph)
+            if clip_penalty:
+                penalty_loss = -penalty * tf.cast((cur_cost_ph > cost_lim_ph),tf.float32) * (cur_cost_ph - cost_lim_ph)
+            else:
+                penalty_loss = -penalty * (cur_cost_ph - cost_lim_ph)
         train_penalty = MpiAdamOptimizer(learning_rate=penalty_lr).minimize(penalty_loss)
 
 
@@ -297,8 +303,6 @@ def run_polopt_agent(env_fn,
         inputs[surr_cost_rescale_ph] = logger.get_stats('EpLen')[0]
         inputs[cur_cost_ph] = cur_cost
         inputs[cost_lim_ph] = current_cost_lim
-        import pdb
-        pdb.set_trace()
 
         #=====================================================================#
         #  Make some measurements before updating                             #
